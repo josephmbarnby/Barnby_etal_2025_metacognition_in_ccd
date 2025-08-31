@@ -1,2 +1,2 @@
-# Barnby_etal_2025_metacognition_in_ccd
+# Corpus Callosum Dysgensis Impairs Metacognition: Evidence from multi-modality and multi-cohort replications
 Code repo for: 
