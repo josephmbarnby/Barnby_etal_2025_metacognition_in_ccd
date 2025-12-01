@@ -3,18 +3,20 @@
 Project Structure
 -----------------
 
-Project Root
+\\\
+📁 **Project Root**
 │
-├── Data
+├── 📂 **Data**
 │   ├── Experiment 1
 │   ├── Experiment 2
 │   ├── Experiment 3
 │
-├── HMeta-d-master
+├── 📂 **HMeta-d-master**
 │   ├── Code from [Fleming et al., 2021](https://pmc.ncbi.nlm.nih.gov/articles/PMC5858026/)
 │
-├── HMetaDFit
+├── 📂 **HMetaDFit**
 │   ├── Fitted outputs from hierarchical fitting
 │
-└── Scripts
+└── 📂 **Scripts**
     ├── Custom functions & analysis code
+\\\
