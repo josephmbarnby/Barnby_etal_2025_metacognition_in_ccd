@@ -3,7 +3,7 @@
 Project Structure
 -----------------
 
-\\\
+```
 📁 **Project Root**
 │
 ├── 📂 **Data**
@@ -19,4 +19,4 @@ Project Structure
 │
 └── 📂 **Scripts**
     ├── Custom functions & analysis code
-\\\
+```
