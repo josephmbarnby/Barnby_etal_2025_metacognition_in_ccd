@@ -17,6 +17,10 @@ Project Structure
 ├── 📂 **HMetaDFit**
 │   ├── Fitted outputs from hierarchical fitting
 │
-└── 📂 **Scripts**
-    ├── Custom functions & analysis code
+├── 📂 **Scripts**
+│   ├── Custom functions & analysis code
+│
+└── 📂 **Tasks**
+    ├── task_rdk (v1.8.0)
+    ├── task_vr_rdk (v1.3.2)
 ```

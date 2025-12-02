@@ -1,0 +1,6 @@
+[submodule "Tasks/task_vr_rdk"]
+	path = Tasks/task_vr_rdk
+	url = https://github.com/Brain-Development-and-Disorders-Lab/task_vr_rdk.git
+[submodule "Tasks/task_rdk"]
+	path = Tasks/task_rdk
+	url = https://github.com/Brain-Development-and-Disorders-Lab/task_rdk.git
