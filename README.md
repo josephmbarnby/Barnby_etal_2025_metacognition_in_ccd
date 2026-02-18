@@ -44,14 +44,13 @@ This study utilized three distinct experimental setups to test metacognition acr
 * `ggplot2` (for visualization)
 
 ### Running the Analysis
-To reproduce the findings:
 
 Clone this repository:
    ```bash
    git clone [https://github.com/josephmbarnby/Barnby_etal_2025_metacognition_in_ccd.git](https://github.com/josephmbarnby/Barnby_etal_2025_metacognition_in_ccd.git)
   ```
 
-✍️ Citation
+### Citation
 If you use this data or code, please cite our paper:
 
 Barnby, J.M., Dean, R., Burgess, H., Dayan, P., & Richards, L.J. (2026). Corpus Callosum Dysgenesis impairs metacognition: evidence from multi-modality and multi-cohort replications. _Nature Commmunications_
