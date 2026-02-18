@@ -34,15 +34,26 @@ This study utilized three distinct experimental setups to test metacognition acr
 
 ## 📂 Repository Structure
 
-The repository is organized to facilitate the reproduction of the analysis and figures presented in the manuscript.
+## 🛠️ Usage & Reproducibility
 
-```text
-.
-├── data/                   # Raw and processed behavioral data
-├── analysis/               # R scripts for behavioral and computational analysis
-│   ├── 01_preprocessing.R  # Data cleaning and exclusion criteria application
-│   ├── 02_behavioral.R     # Accuracy, RT, and confidence analysis
-│   ├── 03_modelling.R      # HMeta-d computational modelling (Hierarchical Bayesian)
-│   └── 04_figures.R        # Code to generate manuscript figures
-├── models/                 # Stan models for HMeta-d
-└── figures/                # Output figures
+### Prerequisites
+[cite_start]The analysis was conducted using **R (v4.3.3)**[cite: 101]. Key dependencies include:
+* `tidyverse`
+* `rstan` (for HMeta-d modelling)
+* `brms` / `lme4` (for mixed-effects models)
+* `ggplot2` (for visualization)
+
+### Running the Analysis
+To reproduce the findings:
+
+Clone this repository:
+   ```bash
+   git clone [https://github.com/josephmbarnby/Barnby_etal_2025_metacognition_in_ccd.git](https://github.com/josephmbarnby/Barnby_etal_2025_metacognition_in_ccd.git)
+  ```
+
+✍️ Citation
+If you use this data or code, please cite our paper:
+
+Barnby, J.M., Dean, R., Burgess, H., Dayan, P., & Richards, L.J. (2026). Corpus Callosum Dysgenesis impairs metacognition: evidence from multi-modality and multi-cohort replications. _Nature Commmunications_
+
+Barnby, J.M., Dean, R., Burgess, H., Dayan, P., & Richards, L.J. (2025). Corpus Callosum Dysgenesis impairs metacognition: evidence from multi-modality and multi-cohort replications. [Preprint/Journal Reference].
