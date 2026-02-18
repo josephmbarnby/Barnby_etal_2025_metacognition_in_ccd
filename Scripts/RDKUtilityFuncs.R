@@ -253,7 +253,7 @@ HMeta_post_clean <- function(x, groupname, trace = T){
 
 }
 
-HMeta_post_clean_meta_d <- function(x, groupname, trace = T){
+HMeta_post_clean_meta_d <- function(x, groupname, trace = F){
 
   Value <- summary(x)
   stat  <- data.frame(mean = Value$statistics[,"Mean"])
@@ -373,6 +373,77 @@ permute_metad_group <- function(df1, df2, cores = 4, nreps = 500){
       meta_dGroup1 = r.random[1,3],
       meta_dGroup2 = r.random[2,3],
       meta_d_diff  = r.random[3,3]
+
+    )
+
+  }
+
+  return(permuted_metad)
+
+}
+
+permute_metad_group_mrat <- function(df1, df2, cores = 4, nreps = 500){
+
+  doParallel::registerDoParallel(cores = cores)
+
+  permuted_metad <- foreach(i=1:nreps, .combine = rbind) %dopar% {
+
+    r.random   <- rep(NA, 3)
+
+    nid_of_df1 <- length(unique(df1$ID))
+    permuteddf <- rbind(df1, df2)
+    IDs        <- unique(permuteddf$ID)
+    IDstoUse   <- sample(IDs, nid_of_df1)
+    DF1permute <- permuteddf %>% filter(ID %in% IDstoUse) %>% mutate(group = 'DF1')
+    DF2permute <- permuteddf %>% filter(!ID %in% IDstoUse) %>% mutate(group = 'DF2')
+
+    DF1run <- HMetaGroupPrep(DF1permute, 'DF1')
+    DF2run <- HMetaGroupPrep(DF2permute, 'DF2')
+
+    nR_S1_pDF1<-list(as.data.frame(DF1run[[1]]))
+    nR_S2_pDF1<-list(as.data.frame(DF1run[[2]]))
+    nR_S1_pDF2<-list(as.data.frame(DF2run[[1]]))
+    nR_S2_pDF2<-list(as.data.frame(DF2run[[2]]))
+
+    #hierarchical fit
+    outputPermuteDF1 <- try(metad_group(nR_S1 = nR_S1_pDF1, nR_S2 = nR_S2_pDF1))
+    outputPermuteDF2 <- try(metad_group(nR_S1 = nR_S1_pDF2, nR_S2 = nR_S2_pDF2))
+
+    if(!inherits(outputPermuteDF1, 'try-error') &
+       !inherits(outputPermuteDF2, 'try-error')) {
+
+      ValueDF1p <- summary(outputPermuteDF1)
+      statDF1p <- data.frame(mean = ValueDF1p$statistics[,"Mean"])
+      statDF1p %<>%
+        rownames_to_column(var = "name")
+      ValueDF2p <- summary(outputPermuteDF2)
+      statDF2p <- data.frame(mean = ValueDF2p$statistics[,"Mean"])
+      statDF2p %<>%
+        rownames_to_column(var = "name")
+
+      r.random[1] <- statDF1p %>%
+        filter(name == 'mu_logMratio') %>%
+        dplyr::select(mean) %>%
+        as.numeric() %>%
+        exp()
+      r.random[2] <- statDF2p %>%
+        filter(name == 'mu_logMratio') %>%
+        dplyr::select(mean) %>%
+        as.numeric() %>%
+        exp()
+      r.random[3] <- r.random[2] - r.random[1]
+
+    } else {
+
+      r.random[1:3] <- NA
+
+    }
+
+    data.frame(
+      rep = i,
+      muGroup1     = r.random[1],
+      muGroup2     = r.random[2],
+      mu_diff      = r.random[3]
 
     )
 
@@ -584,18 +655,19 @@ permute_metad_group_vr_within <- function(df1, df2, cores = 4, nreps = 500) {
 }
 
 
-
-make_results <- function(metaDat, group_label = c("CCD", "NT")[1], type_name = c("BINO", "LAT", "MONO", "ONL", "LAB")[1]) {
+make_results <- function(metaDat, group_label = c("CCD", "NT")[1], type_name = c("BINO", "LAT", "MONO", "ONL", "LAB")[1], simulate = 0) {
   # Map from dummy type to the short label your HMeta function expects
   type_map <- c(BINO = "BIN", LAT = "LAT", MONO = "MON", ONL = 'ONL', LAB = 'LAB')
 
   # Run fit for given type
   fit <- metad_only_group(
     nR_S1 = list(metaDat[[1]]),
-    nR_S2 = list(metaDat[[2]])
+    nR_S2 = list(metaDat[[2]]),
+    sim = simulate
   )
+
   post <- HMeta_post_clean_meta_d(fit, paste(group_label, type_map[[type_name]]))
-  df <- post$Fit
+  df   <- post$Fit
 
   # Add identifiers
   df$type  <- type_name
@@ -661,4 +733,230 @@ perm_effect_stats <- function(x_obs, perm) {
   )
 }
 
+run_recovery <- function(input_data, task_label, group_label) {
 
+  message("Running initial fit with simulation...")
+  fit_initial <- metad_group(
+    nR_S1 = list(input_data[[1]]),
+    nR_S2 = list(input_data[[2]]),
+    sim = 1
+  )
+
+  message("Extracting real parameters...")
+  post <- HMeta_post_clean_meta_d(fit_initial, paste(task_label, group_label))
+  df   <- post$Fit
+  df$type  <- group_label
+  df$group <- task_label
+
+  real_parms <- df %>%
+    filter(!str_detect(name, "counts_sim")) %>%
+    rename(mean_real = mean,
+           lower_real = lower,
+           upper_real = upper)
+
+  message("Extracting simulated counts...")
+  sim_counts_raw <- spread_draws(fit_initial, counts_sim[subj, bin]) %>%
+    group_by(subj, bin) %>%
+    summarise(predicted_mean = mean(counts_sim), .groups = 'drop')
+
+  n_subj <- length(unique(sim_counts_raw$subj))
+  n_rows <- nrow(input_data[[1]])
+
+  rec_list <- list()
+  rec_list[[1]] <- matrix(NA, ncol = n_subj, nrow = n_rows)
+  rec_list[[2]] <- matrix(NA, ncol = n_subj, nrow = n_rows)
+
+  for(i in 1:n_subj) {
+    subj_data <- sim_counts_raw %>%
+      filter(subj == i) %>%
+      arrange(bin) %>%
+      pull(predicted_mean) %>%
+      round()
+
+    rec_list[[1]][,i]  <- subj_data[1:n_rows]
+    rec_list[[2]][, i] <- subj_data[(n_rows + 1):(n_rows * 2)]
+  }
+
+  rec_list[[1]] <- as.data.frame(rec_list[[1]])
+  rec_list[[2]] <- as.data.frame(rec_list[[2]])
+
+  message("Running recovered fit...")
+  fit_initial_rec <- metad_group(
+    nR_S1 = list(rec_list[[1]]),
+    nR_S2 = list(rec_list[[2]]),
+    sim = 0
+  )
+
+  message("Extracting recovered fit...")
+  post_rec <- HMeta_post_clean_meta_d(fit_initial_rec, paste(task_label, group_label))
+  df_rec   <- post_rec$Fit
+  df_rec$type  <- group_label
+  df_rec$group <- task_label
+
+  recovered_parms <- df_rec %>%
+    filter(!str_detect(name, "counts_sim")) %>%
+    rename(mean_rec = mean,
+           lower_rec = lower,
+           upper_rec = upper)
+
+  message("Merging results...")
+  final_results <- cbind(
+    real_parms,
+    recovered_parms %>%
+      dplyr::select(mean_rec, lower_rec, upper_rec)
+  )
+
+  return(list(final_results = final_results,
+              sim_data = rec_list)
+         )
+}
+
+
+run_indiv_recovery <- function(input_data, task_label, group_label) {
+
+  message("Running initial fit with simulation...")
+  fit_initial <- metad_group(
+    nR_S1 = list(input_data[[1]]),
+    nR_S2 = list(input_data[[2]]),
+    sim = 1
+  )
+
+  message("Extracting real parameters...")
+  post <- HMeta_post_clean_meta_d(fit_initial, paste(task_label, group_label))
+  real_parms <- post$Fit %>%
+  filter(str_detect(name, "Mratio"),
+         !str_detect(name, "log")) %>%
+  rename(mean_real = mean, lower_real = lower, upper_real = upper) %>%
+    mutate(type = group_label, group = task_label)
+
+  message("Extracting simulated counts...")
+  sim_counts_raw <- spread_draws(fit_initial, counts_sim[subj, bin]) %>%
+    group_by(subj, bin) %>%
+    summarise(predicted_mean = mean(counts_sim), .groups = 'drop')
+
+  n_subj <- length(unique(sim_counts_raw$subj))
+  n_rows <- nrow(input_data[[1]]) # Number of bins per S category
+
+  # Storage for individual recovery results
+  all_subjects_rec <- list()
+
+  for (i in 1:n_subj) {
+    message(paste("Recovering Subject", i, "of", n_subj, "..."))
+
+    subj_full_data <- sim_counts_raw %>%
+      filter(subj == i) %>%
+      arrange(bin) %>%
+      pull(predicted_mean) %>%
+      round()
+
+    rec_s1 <- subj_full_data[1:n_rows]
+    rec_s2 <- subj_full_data[(n_rows + 1):(n_rows * 2)]
+
+    fit_indiv_rec <- metad_indiv(nR_S1 = rec_s1, nR_S2 = rec_s2)
+
+    post_rec <- HMeta_post_clean_meta_d(fit_indiv_rec, paste(task_label, group_label))
+
+    all_subjects_rec[[i]] <- post_rec$Fit %>%
+      filter(!str_detect(name, "counts_sim")) %>%
+      dplyr::select(mean_rec = mean, lower_rec = lower, upper_rec = upper) %>%
+      mutate(subj_id = i)%>%
+      slice(2)
+  }
+
+  rec_df_final  <- bind_rows(all_subjects_rec)
+
+  final_results <- cbind(real_parms, rec_df_final)
+
+  return(final_results)
+}
+
+
+make_vr_perm_plot <- function(perm_df, diff_val) {
+  perm_df %>% as.data.frame() %>% rename(Diff = 4) %>%
+    ggplot(aes(Diff)) + geom_histogram(binwidth = 0.01) +
+    labs(x = expression(paste("Randomised ",mu['ratio'])), y = 'Sample Count') +
+    geom_label(x = diff_val + 0.15, y = 7.5, label = round(diff_val,2),
+               fill = colpal_vr[2], colour = 'white') +
+    geom_vline(xintercept = diff_val, color = colpal_vr[2], size = 1.5) +
+    theme_minimal() + theme(panel.grid = element_blank(), axis.text = element_text(size=20), axis.title = element_text(size=24))
+}
+
+# Decision-phase RTs (confidence not reported; conf == 0)
+run_rt_lmer <- function(data, env_filter, conf_filter) {
+  lmerTest::lmer(log(RT) ~ CCD * kmed + (1|ID),
+                 data = data %>% filter(type=='main', conf==conf_filter,
+                                        kmed!='kmed', environment==env_filter)) %>% summary()
+}
+
+# Coherence trajectories for Experiment 3 (each presentation type)
+make_vr_cal_plot <- function(ptype, legend_name) {
+    ggplot(check_coh_RDK %>%
+             filter(type == 'Calibration', prestype == ptype, vr == 1) %>%
+             group_by(ID) %>% mutate(Trial = 1:n())) +
+      stat_summary(aes(Trial, coherence, fill = group), geom='ribbon', alpha=0.1, colour=NA) +
+      stat_summary(aes(Trial, coherence, colour = group), geom='line') +
+      scale_color_manual(values = colpal_vr, name = legend_name) +
+      scale_fill_manual(values  = colpal_vr, name = legend_name) +
+      labs(x = 'Trial', y = 'Coherence') +
+      coord_cartesian(ylim = c(0, 0.5), xlim = c(0, ifelse(ptype=='Binocular', 24, 48))) +
+      scale_x_continuous(expand = c(0,0)) +
+      theme_minimal(base_size = 20) +
+      theme(legend.position = 'top', panel.grid.minor = element_blank())
+}
+
+# Experiment 3: per-presentation-type beeswarm panels
+make_exp3_plot <- function(data, y_var, y_lab, label_y) {
+  lapply(c('Bino.', 'Lat.', 'Mono.'), function(p) {
+    tidyplot(data %>% filter(Pres == p), x = group, y = !!sym(y_var), colour = kmed) %>%
+      add_data_points_beeswarm(alpha=0.1, cex=1) %>% add_sd_errorbar() %>% add_mean_dot(size=2) %>%
+      add_title(p) %>%
+      adjust_size(width=75, height=50) %>% adjust_x_axis_title(title='') %>%
+      adjust_y_axis_title(title=y_lab) %>% adjust_font(fontsize=15) %>%
+      adjust_legend_title(title='Coh.') %>% adjust_legend_position(position='top') +
+      stat_compare_means(paired=TRUE, hide.ns=TRUE, size=5, show.legend=FALSE,
+                         label='p.signif', label.y=label_y) +
+      coord_cartesian(clip="off")
+  }) %>% Reduce(`|`, .)
+}
+
+
+# Helper to reformat a matrix into long format for per-participant correlation
+fit_to_count <- function(mat, type_label, exp_label, dec_label) {
+  as.data.frame(mat) %>%
+    mutate(Bin = 1:n()) %>%
+    pivot_longer(cols = starts_with("V"), names_to = "Participant", values_to = "Count") %>%
+    mutate(Type = type_label, Exp = exp_label, Dec = dec_label)
+}
+
+make_vr_hist <- function(groups_to_plot) {
+  mcmcGroup_vr %>%
+    filter(Parameter == "mu_logMratio", group %in% groups_to_plot) %>%
+    ggplot(aes(exp(value), fill = group)) +
+    geom_histogram(binwidth = 0.03, alpha = 0.9, position = 'dodge') +
+    scale_fill_manual(values = colpal_vr[1:2]) +
+    labs(y = "Sample Count", x = expression(paste(mu["ratio"]))) +
+    hmeta_theme +
+    theme(legend.position = 'none')
+}
+
+# Helper to run model + effect sizes in one call
+run_lmer <- function(formula, data) {
+  m <- lmerTest::lmer(formula, data = data)
+  e <- effectsize::effectsize(m, method = "posthoc")
+  return(list(summary = summary(m), effect_size = e))
+}
+
+# Summary table of group-level mu and sigma for mu_logMratio (exp-transformed
+# to give the M-ratio on its natural scale)
+extract_stat <- function(res, param) {
+  data.frame(
+    mean  = exp(res[[3]]$mean[ res[[3]]$name == param]),
+    lower = exp(res[[3]]$lower[res[[3]]$name == param]),
+    upper = exp(res[[3]]$upper[res[[3]]$name == param])
+  )
+}
+
+# Reshape ccd_b / ccd_l / ccd_m etc. into a long format aligned by participant
+make_block <- function(group, type, v) {
+  data.frame(group = group, type = type, value = v, stringsAsFactors = FALSE)
+}
