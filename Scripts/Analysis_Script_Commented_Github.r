@@ -838,6 +838,8 @@ cor_plot_post_pred <- ggplot(bin_correlations, aes(conf_level, pearson_r)) +
 # --- 9a. Extract observed group differences ----
 # Helper: pull exp(mu_logMratio) from a make_results() output dataframe
 pull_mu <- function(df, param = 'mu_logMratio') df %>% filter(name == param) %>% mutate(mean = exp(mean))
+pull_meta_d <- function(df, param = 'mu_meta_d') df %>% filter(name == param) %>% mutate(mean = abs(mean))
+pull_d1 <- function(df, param = 'mu_d1') df %>% filter(name == param) %>% mutate(mean = abs(mean))
 
 mu_log_exp1_NT  <- pull_mu(Results_ONL_NT$Fit);      mu_log_exp1_CCD  <- pull_mu(Results_ONL_CCD$Fit)
 mu_log_exp2_NT  <- pull_mu(Results_LAB_NT$Fit);      mu_log_exp2_CCD  <- pull_mu(Results_LAB_CCD$Fit)
@@ -845,12 +847,36 @@ mu_log_exp3_NT   <- pull_mu(Results_VR_NT$Fit);       mu_log_exp3_CCD   <- pull_
 mu_log_exp3_NT_L <- pull_mu(Results_VR_NT_L$Fit);     mu_log_exp3_CCD_L <- pull_mu(Results_VR_CCD_L$Fit)
 mu_log_exp3_NT_M <- pull_mu(Results_VR_NT_M$Fit);     mu_log_exp3_CCD_M <- pull_mu(Results_VR_CCD_M$Fit)
 
+meta_d_log_exp1_NT   <- pull_meta_d(nt_onl);meta_d_log_exp1_CCD   <- pull_meta_d(ccd_onl);
+meta_d_log_exp2_NT   <- pull_meta_d(nt_lab);meta_d_log_exp2_CCD   <- pull_meta_d(ccd_lab);
+meta_d_log_exp3_NT   <- pull_meta_d(nt_b);  meta_d_log_exp3_CCD   <- pull_meta_d(ccd_b);
+meta_d_log_exp3_NT_L <- pull_meta_d(nt_l);  meta_d_log_exp3_CCD_L <- pull_meta_d(ccd_l);
+meta_d_log_exp3_NT_M <- pull_meta_d(nt_m);  meta_d_log_exp3_CCD_M <- pull_meta_d(ccd_m);
+
+d1_log_exp1_NT   <- pull_d1(nt_onl);d1_log_exp1_CCD   <- pull_d1(ccd_onl);
+d1_log_exp2_NT   <- pull_d1(nt_lab);d1_log_exp2_CCD   <- pull_d1(ccd_lab);
+d1_log_exp3_NT   <- pull_d1(nt_b);  d1_log_exp3_CCD   <- pull_d1(ccd_b);
+d1_log_exp3_NT_L <- pull_d1(nt_l);  d1_log_exp3_CCD_L <- pull_d1(ccd_l);
+d1_log_exp3_NT_M <- pull_d1(nt_m);  d1_log_exp3_CCD_M <- pull_d1(ccd_m);
+
 # Compute NT − CCD differences for M-ratio, d', and meta-d' in each context
 diffExp1         <- as.numeric(mu_log_exp1_NT[2]   - mu_log_exp1_CCD[2])
 diffExp2         <- as.numeric(mu_log_exp2_NT[2]   - mu_log_exp2_CCD[2])
 diffExp3         <- as.numeric(mu_log_exp3_NT[2]   - mu_log_exp3_CCD[2])
 diffExp3_L       <- as.numeric(mu_log_exp3_NT_L[2] - mu_log_exp3_CCD_L[2])
 diffExp3_M       <- as.numeric(mu_log_exp3_NT_M[2] - mu_log_exp3_CCD_M[2])
+
+diffExp1_d1         <- as.numeric(d1_log_exp1_NT[2]   - d1_log_exp1_CCD[2])
+diffExp2_d1         <- as.numeric(d1_log_exp2_NT[2]   - d1_log_exp2_CCD[2])
+diffExp3_d1         <- as.numeric(d1_log_exp3_NT[2]   - d1_log_exp3_CCD[2])
+diffExp3_L_d1       <- as.numeric(d1_log_exp3_NT_L[2] - d1_log_exp3_CCD_L[2])
+diffExp3_M_d1       <- as.numeric(d1_log_exp3_NT_M[2] - d1_log_exp3_CCD_M[2])
+
+diffExp1_metad         <- as.numeric(meta_d_log_exp1_NT[2]   - meta_d_log_exp1_CCD[2])
+diffExp2_metad         <- as.numeric(meta_d_log_exp2_NT[2]   - meta_d_log_exp2_CCD[2])
+diffExp3_metad         <- as.numeric(meta_d_log_exp3_NT[2]   - meta_d_log_exp3_CCD[2])
+diffExp3_L_metad       <- as.numeric(meta_d_log_exp3_NT_L[2] - meta_d_log_exp3_CCD_L[2])
+diffExp3_M_metad       <- as.numeric(meta_d_log_exp3_NT_M[2] - meta_d_log_exp3_CCD_M[2])
 
 cat("mu difference Lab:",  diffExp1,  "\n")
 cat("mu difference Onl:",  diffExp2,  "\n")
@@ -860,7 +886,6 @@ cat("mu difference VR-M:", diffExp3_M, "\n")
 
 # --- 9b. Prepare data for permutation ----
 data_for_permute_exp1_CCD      <- checkBothRDK %>% filter(group=='CCD (Online)') %>% dplyr::select(ID, Trial, conf, dotDirection, type, kmed, referenceSelection, group)
-data_for_permute_exp1_CCD_exc  <- checkBothRDK_w_exc %>% filter(group=='CCD (Online)') %>% dplyr::select(ID, Trial, conf, dotDirection, type, kmed, referenceSelection, group)
 data_for_permute_exp1_NT       <- checkBothRDK %>% filter(group=='NT (Online)')  %>% dplyr::select(ID, Trial, conf, dotDirection, type, kmed, referenceSelection, group)
 
 data_for_permute_exp2_CCD      <- checkBothRDK %>% filter(group=='CCD (MRI)')    %>% dplyr::select(ID, Trial, conf, dotDirection, type, kmed, referenceSelection, group)
@@ -868,13 +893,10 @@ data_for_permute_exp2_NT       <- checkBothRDK %>% filter(group=='NT (MRI)')    
 
 data_for_permute_exp3_CCD      <- data_vr %>% filter(BinocularTrial   == 1, Group=='CCD')
 data_for_permute_exp3_NT       <- data_vr %>% filter(BinocularTrial   == 1, Group=='NT')
-data_for_permute_exp3_CCD_exc  <- data_vr %>% filter(BinocularTrial   == 1, Group=='CCD', !PID %in% exc_ids)
 data_for_permute_exp3_CCD_L    <- data_vr %>% filter(LateralizedTrial == 1, Group=='CCD')
 data_for_permute_exp3_NT_L     <- data_vr %>% filter(LateralizedTrial == 1, Group=='NT')
-data_for_permute_exp3_CCD_L_exc<- data_vr %>% filter(LateralizedTrial == 1, Group=='CCD', !PID %in% exc_ids)
 data_for_permute_exp3_CCD_M    <- data_vr %>% filter(MonocularTrial   == 1, Group=='CCD')
 data_for_permute_exp3_NT_M     <- data_vr %>% filter(MonocularTrial   == 1, Group=='NT')
-data_for_permute_exp3_CCD_M_exc<- data_vr %>% filter(MonocularTrial   == 1, Group=='CCD', !PID %in% exc_ids)
 
 # --- 9c. Run permutation (slow; only re-run when needed) ----
 
@@ -889,29 +911,21 @@ if(do_perm==1)
 
   onl_CCDvsNTp      <- permute_metad_group(data_for_permute_exp1_CCD, data_for_permute_exp1_NT, cores = 5, nreps = nreps);
   onl_CCDvsNTp_mrat <- permute_metad_group_mrat(data_for_permute_exp1_CCD, data_for_permute_exp1_NT, cores = 5, nreps = nreps);
-  onl_CCDvsNTp_exc  <- permute_metad_group_mrat(data_for_permute_exp1_CCD_exc, data_for_permute_exp1_NT, cores = 10, nreps = nreps);
 
-  lab_CCDvsNTp_mrat <- permute_metad_group_mrat(data_for_permute_exp2_CCD, data_for_permute_exp2_NT, cores = 10, nreps = nreps);
   lab_CCDvsNTp      <- permute_metad_group(data_for_permute_exp2_CCD, data_for_permute_exp2_NT, cores = 10, nreps = nreps);
+  lab_CCDvsNTp_mrat <- permute_metad_group_mrat(data_for_permute_exp2_CCD, data_for_permute_exp2_NT, cores = 10, nreps = nreps);
 
   vr_CCDvsNTp  <- permute_metad_group_vr(data_for_permute_exp3_CCD,   data_for_permute_exp3_NT,cores = 10, nreps = nreps);
   vr_CCDvsNTp_L<- permute_metad_group_vr(data_for_permute_exp3_CCD_L, data_for_permute_exp3_NT_L,cores = 10, nreps = nreps);
   vr_CCDvsNTp_M<- permute_metad_group_vr(data_for_permute_exp3_CCD_M, data_for_permute_exp3_NT_M,cores = 10, nreps = nreps);
 
-  vr_CCDvsNTp_exc  <- permute_metad_group_vr(data_for_permute_exp3_CCD_exc,   data_for_permute_exp3_NT,cores = 10, nreps = nreps);
-  vr_CCDvsNTp_L_exc<- permute_metad_group_vr(data_for_permute_exp3_CCD_L_exc, data_for_permute_exp3_NT_L,cores = 10, nreps = nreps);
-  vr_CCDvsNTp_M_exc<- permute_metad_group_vr(data_for_permute_exp3_CCD_M_exc, data_for_permute_exp3_NT_M,cores = 10, nreps = nreps);
-
   saveRDS(onl_CCDvsNTp,  'HMetaDFit/CCDvsNT_ONL.rdata')
-  saveRDS(onl_CCDvsNTp_exc,  'HMetaDFit/CCDvsNT_ONL_exc.rdata')
+  saveRDS(onl_CCDvsNTp,  'HMetaDFit/CCDvsNT_ONL_mrat.rdata')
   saveRDS(lab_CCDvsNTp,  'HMetaDFit/CCDvsNT_LAB.rdata')
   saveRDS(lab_CCDvsNTp_mrat,  'HMetaDFit/CCDvsNT_LAB_mrat.rdata')
   saveRDS(vr_CCDvsNTp,  'HMetaDFit/CCDvsNT_VR.rdata')
   saveRDS(vr_CCDvsNTp_L,'HMetaDFit/CCDvsNT_VR_L.rdata')
   saveRDS(vr_CCDvsNTp_M,'HMetaDFit/CCDvsNT_VR_M.rdata')
-  saveRDS(vr_CCDvsNTp_exc,  'HMetaDFit/CCDvsNT_VR_exc.rdata')
-  saveRDS(vr_CCDvsNTp_L_exc,'HMetaDFit/CCDvsNT_VR_L_exc.rdata')
-  saveRDS(vr_CCDvsNTp_M_exc,'HMetaDFit/CCDvsNT_VR_M_exc.rdata')
 
   setwd('~')
 
@@ -925,37 +939,34 @@ lab_CCDvsNTp_mrat <- readRDS('HMetaDFit/Permutation/CCDvsNT_LAB_mrat.rdata')
 vr_CCDvsNTp       <- readRDS('HMetaDFit/Permutation/CCDvsNT_VR.rdata')
 vr_CCDvsNTp_L     <- readRDS('HMetaDFit/Permutation/CCDvsNT_VR_L.rdata')
 vr_CCDvsNTp_M     <- readRDS('HMetaDFit/Permutation/CCDvsNT_VR_M.rdata')
-vr_CCDvsNTp_exc   <- readRDS('HMetaDFit/Permutation/CCDvsNT_VR_exc.rdata')
-vr_CCDvsNTp_L_exc <- readRDS('HMetaDFit/Permutation/CCDvsNT_VR_L_exc.rdata')
-vr_CCDvsNTp_M_exc <- readRDS('HMetaDFit/Permutation/CCDvsNT_VR_M_exc.rdata')
 
 # --- 9e. Effect sizes and permutation p-values ------
 
 # perm_effect_stats() returns the p-value and U3 superiority index
 cat("\n--- Online (Exp 1) ---\n")
 perm_effect_stats(round(diffExp1,         2), onl_CCDvsNTp_mrat[,4])
-perm_effect_stats(round(diffOnlCCD_d1,    2), onl_CCDvsNTp[,7])
-perm_effect_stats(round(diffOnlCCD_meta_d,2), onl_CCDvsNTp[,10])
+perm_effect_stats(round(diffExp1_d1,      2), onl_CCDvsNTp[,7])
+perm_effect_stats(round(diffExp1_metad,   2), onl_CCDvsNTp[,10])
 
 cat("\n--- Lab (Exp 2) ---\n")
 perm_effect_stats(round(diffExp2,         2), lab_CCDvsNTp_mrat[,4])
-perm_effect_stats(round(diffLabCCD_d1,    2), lab_CCDvsNTp[,7])
-perm_effect_stats(round(diffLabCCD_meta_d,2), lab_CCDvsNTp[,10])
+perm_effect_stats(round(diffExp2_d1,      2), lab_CCDvsNTp[,7])
+perm_effect_stats(round(diffExp2_metad,   2), lab_CCDvsNTp[,10])
 
 cat("\n--- VR binocular (Exp 3) ---\n")
 perm_effect_stats(round(diffExp3,         2), vr_CCDvsNTp_mrat[,4])
-perm_effect_stats(round(diffVRCCD_d1,     2), vr_CCDvsNTp[,7])
-perm_effect_stats(round(diffVRCCD_meta_d, 2), vr_CCDvsNTp[,10])
+perm_effect_stats(round(diffExp3_d1,      2), vr_CCDvsNTp[,7])
+perm_effect_stats(round(diffExp3_meta_d,  2), vr_CCDvsNTp[,10])
 
 cat("\n--- VR lateralized (Exp 3) ---\n")
-perm_effect_stats(round(diffExp3_L,         2), vr_CCDvsNTp_mrat_L[,4])
-perm_effect_stats(round(diffVRCCD_d1_L,     2), vr_CCDvsNTp_L[,7])
-perm_effect_stats(round(diffVRCCD_meta_d_L, 2), vr_CCDvsNTp_L[,10])
+perm_effect_stats(round(diffExp3_L,       2), vr_CCDvsNTp_mrat_L[,4])
+perm_effect_stats(round(diffExp3_L_d1,    2), vr_CCDvsNTp_L[,7])
+perm_effect_stats(round(diffExp3_L_metad, 2), vr_CCDvsNTp_L[,10])
 
 cat("\n--- VR monocular (Exp 3) ---\n")
-perm_effect_stats(round(diffExp3_M,         2), vr_CCDvsNTp_mrat_M[,4])
-perm_effect_stats(round(diffVRCCD_d1_M,     2), vr_CCDvsNTp_M[,7])
-perm_effect_stats(round(diffVRCCD_meta_d_M, 2), vr_CCDvsNTp_M[,10])
+perm_effect_stats(round(diffExp3_M,       2), vr_CCDvsNTp_mrat_M[,4])
+perm_effect_stats(round(diffExp3_M_d1,    2), vr_CCDvsNTp_M[,7])
+perm_effect_stats(round(diffExp3_M_metad, 2), vr_CCDvsNTp_M[,10])
 
 # --- 9f. Permutation histogram plots -------
 # One panel per experiment, x-axis = null M-ratio difference, vertical line = observed
@@ -1365,14 +1376,19 @@ run_lmer(Correct  ~ kmed + (1|ID), data_vr_tests %>% filter(group=='NT', Present
 run_lmer(conf  ~ kmed + (1|ID), data_vr_tests %>% filter(group=='CCD', PresentationType=='Monocular', !ID %in% c('24104011', '24105011', '24109011', '24112011')))
 run_lmer(conf  ~ kmed + (1|ID), data_vr_tests %>% filter(group=='NT', PresentationType=='Monocular'))
 
-
-
 #### Computational -----------------------------------------------------------
 
-# --- 6c. Load pre-fitted models ----
 outputONL_CCD_exc <- readRDS('HMetaDFit/Mratio/ONL_CCD_exc.rdata')
 
-# --- 6d. Extract cleaned MCMC samples and posterior summaries ----
 Results_ONL_CCD_exc <- HMeta_post_clean(outputONL_CCD_exc, 'CCD (ONL)', F)
 
-onl_CCDvsNTp_exc  <- readRDS('HMetaDFit/Permutation/CCDvsNT_ONL_exc.rdata')
+data_for_permute_exp1_CCD_exc  <- checkBothRDK_w_exc %>% filter(group=='CCD (Online)') %>% dplyr::select(ID, Trial, conf, dotDirection, type, kmed, referenceSelection, group)
+onl_CCDvsNTp_exc  <- permute_metad_group_mrat(data_for_permute_exp1_CCD_exc, data_for_permute_exp1_NT, cores = 10, nreps = nreps);
+
+data_for_permute_exp3_CCD_exc  <- data_vr %>% filter(BinocularTrial   == 1, Group=='CCD', !PID %in% exc_ids)
+data_for_permute_exp3_CCD_L_exc<- data_vr %>% filter(LateralizedTrial == 1, Group=='CCD', !PID %in% exc_ids)
+data_for_permute_exp3_CCD_M_exc<- data_vr %>% filter(MonocularTrial   == 1, Group=='CCD', !PID %in% exc_ids)
+
+vr_CCDvsNTp_exc  <- permute_metad_group_vr(data_for_permute_exp3_CCD_exc,   data_for_permute_exp3_NT,cores = 10, nreps = nreps);
+vr_CCDvsNTp_L_exc<- permute_metad_group_vr(data_for_permute_exp3_CCD_L_exc, data_for_permute_exp3_NT_L,cores = 10, nreps = nreps);
+vr_CCDvsNTp_M_exc<- permute_metad_group_vr(data_for_permute_exp3_CCD_M_exc, data_for_permute_exp3_NT_M,cores = 10, nreps = nreps);
