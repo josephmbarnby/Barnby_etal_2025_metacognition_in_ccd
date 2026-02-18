@@ -1,6 +1,6 @@
 # Corpus Callosum Dysgenesis impairs metacognition: evidence from multi-modality and multi-cohort replications
 
-**Authors:** Joseph M. Barnby*¹², Reinder Dean*³, H. Burgess³, Peter Dayan ⌇ ⁴⁵, Linda J. Richards ⌇ ³
+**Authors:** Joseph M. Barnby*¹², Ryan Dean*³, H. Burgess³, Peter Dayan ⌇ ⁴⁵, Linda J. Richards ⌇ ³
 
 \* Joint first author  
 ⌇ Joint senior author
