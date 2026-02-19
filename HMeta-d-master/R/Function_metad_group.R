@@ -36,7 +36,7 @@ library(broom)
 library(ggpubr)
 library(ggmcmc)
 
-metad_group <- function (nR_S1, nR_S2) {
+metad_group <- function (nR_S1, nR_S2, sim = 0) {
 
   # Type 1 parameters
   nTot <- sum(nR_S1[[1]]$V1, nR_S2[[1]]$V1)
@@ -100,17 +100,23 @@ metad_group <- function (nR_S1, nR_S2) {
                             n.chains = 3, quiet=FALSE)
     update(model, n.iter=1000)
 
+    if(sim==1){
+      vars = c("mu_logMratio", "sigma_logMratio", "Mratio", "mu_c2", "counts_sim")
+    } else {
+      vars = c("mu_logMratio", "sigma_logMratio", "Mratio", "mu_c2")
+    }
+
     # Sampling
     output <- coda.samples(
       model          = model,
-      variable.names = c("mu_logMratio", "sigma_logMratio", "Mratio", "mu_c2"),
+      variable.names = vars,
       n.iter         = 10000,
       thin           = 1 )
 
   return(output)
 }
 
-metad_only_group <- function (nR_S1, nR_S2) {
+metad_only_group <- function (nR_S1, nR_S2, sim = 0) {
 
   # Type 1 parameters
   nTot <- sum(nR_S1[[1]]$V1, nR_S2[[1]]$V1)
@@ -154,6 +160,8 @@ metad_only_group <- function (nR_S1, nR_S2) {
   counts <- t(nR_S1[[1]]) %>%
     cbind(t(nR_S2[[1]]))
 
+  counts_sim <- matrix(NA, nrow = nsubj, ncol = (nratings * 4))
+
   d1 <<- as.matrix(d1)
   c1 <<- as.matrix(c1)
 
@@ -174,11 +182,18 @@ metad_only_group <- function (nR_S1, nR_S2) {
                             n.chains = 3, quiet=FALSE)
     update(model, n.iter=1000)
 
+    if(sim==1){
+      vars = c("meta_d", "d1", "mu_logMratio", "sigma_logMratio", " Mratio", "mu_c2",
+                         'mu_d1', 'mu_meta_d', "counts_sim")
+    } else {
+      vars = c("meta_d", "d1", "mu_logMratio", "sigma_logMratio", "Mratio", "mu_c2",
+                         'mu_d1', 'mu_meta_d')
+    }
+
     # Sampling
     output <- coda.samples(
       model          = model,
-      variable.names = c("meta_d", "d1", "mu_logMratio", "sigma_logMratio", "Mratio", "mu_c2",
-                         'mu_d1', 'mu_meta_d'),
+      variable.names = vars,
       n.iter         = 10000,
       thin           = 1 )
 

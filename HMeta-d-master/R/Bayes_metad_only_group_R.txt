@@ -33,11 +33,17 @@ model {
     counts[s,(nratings*2+1):(nratings*3)] ~ dmulti(prT[s,(nratings*2+1):(nratings*3)],M[s])
     counts[s,(nratings*3+1):(nratings*4)] ~ dmulti(prT[s,(nratings*3+1):(nratings*4)],H[s])
 
+  # Simulation for recovery
+    counts_sim[s,1:(nratings)] ~ dmulti(prT[s,1:(nratings)],CR[s])
+    counts_sim[s,(nratings+1):(nratings*2)] ~ dmulti(prT[s,(nratings+1):(nratings*2)],FA[s])
+    counts_sim[s,(nratings*2+1):(nratings*3)] ~ dmulti(prT[s,(nratings*2+1):(nratings*3)],M[s])
+    counts_sim[s,(nratings*3+1):(nratings*4)] ~ dmulti(prT[s,(nratings*3+1):(nratings*4)],H[s])
+
 	# Means of SDT distributions]
 	meta_d[s] <- Mratio[s] * d1[s]
   mu[s]     <- meta_d[s]
-	S2mu[s] <- mu[s]/2
-	S1mu[s] <- -mu[s]/2
+	S2mu[s]   <- mu[s]/2
+	S1mu[s]   <- -mu[s]/2
 
 	# Calculate normalisation constants
 	C_area_rS1[s] <- phi(c1[s] - S1mu[s])

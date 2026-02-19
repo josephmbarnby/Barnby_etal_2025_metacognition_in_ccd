@@ -29,6 +29,13 @@ counts[(nratings+1):(nratings*2)] ~ dmulti(prT[(nratings+1):(nratings*2)],FA)
 counts[(nratings*2+1):(nratings*3)] ~ dmulti(prT[(nratings*2+1):(nratings*3)],M)
 counts[(nratings*3+1):(nratings*4)] ~ dmulti(prT[(nratings*3+1):(nratings*4)],H)
 
+# Simulation for recovery
+counts_sim[1:(nratings)] ~ dmulti(prT[1:(nratings)],CR)
+counts_sim[(nratings+1):(nratings*2)] ~ dmulti(prT[(nratings+1):(nratings*2)],FA)
+counts_sim[(nratings*2+1):(nratings*3)] ~ dmulti(prT[(nratings*2+1):(nratings*3)],M)
+counts_sim[(nratings*3+1):(nratings*4)] ~ dmulti(prT[(nratings*3+1):(nratings*4)],H)
+
+
 # Means of SDT distributions
 S2mu <- meta_d/2
 S1mu <- -meta_d/2
@@ -82,5 +89,7 @@ cS2[1:(nratings-1)] <- sort(cS2_raw)
 
 # Type 2 priors
 meta_d ~ dnorm(d1,0.5)
+
+m_ratio <- meta_d / d1
 
 }

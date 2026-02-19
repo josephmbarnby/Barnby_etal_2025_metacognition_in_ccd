@@ -3,9 +3,9 @@
 # Estimate metacognitive sensibility (meta d') for individual subject
 #
 # Adaptation in R of matlab function 'fit_meta_d_mcmc.m'
-# by Steve Fleming 
-# for more details see Fleming (2017). HMeta-d: hierarchical Bayesian 
-# estimation of metacognitive efficiency from confidence ratings. 
+# by Steve Fleming
+# for more details see Fleming (2017). HMeta-d: hierarchical Bayesian
+# estimation of metacognitive efficiency from confidence ratings.
 #
 # you need to install the following packing before using the function:
 # tidyverse
@@ -36,11 +36,11 @@ library(broom)
 library(ggpubr)
 library(ggmcmc)
 
-metad_indiv <- function (nR_S1, nR_S2) {
+metad_indiv <- function (nR_S1, nR_S2, sim = 0) {
 
   Tol <- 1e-05
   nratings <- length(nR_S1)/2
-  
+
   # Adjust to ensure non-zero counts for type 1 d' point estimate
   adj_f <- 1/((nratings)*2)
   nR_S1_adj = nR_S1 + adj_f
@@ -58,8 +58,8 @@ metad_indiv <- function (nR_S1, nR_S2) {
   t1_index <- nratings
   d1 <<- qnorm(ratingHR[(t1_index)]) - qnorm(ratingFAR[(t1_index)])
   c1 <<- -0.5 * (qnorm(ratingHR[(t1_index)]) + qnorm(ratingFAR[(t1_index)]))
-  
-  counts <- t(nR_S1) %>% 
+
+  counts <- t(nR_S1) %>%
       cbind(t(nR_S2))
   counts <- as.vector(counts)
 
@@ -71,20 +71,26 @@ metad_indiv <- function (nR_S1, nR_S2) {
       nratings = nratings,
       Tol = Tol
     )
-    
+
     ## Model using JAGS
     # Create and update model
-    model <- jags.model(file = 'Bayes_metad_indiv_R.txt', data = data,
+    model <- jags.model(file = 'Bayes_metad_only_indiv_R.txt', data = data,
                             n.chains = 3, quiet=FALSE)
     update(model, n.iter=1000)
-    
+
+    if(sim==1){
+      vars = c("meta_d",  "d1", "m_ratio", "counts_sim")
+    } else {
+      vars = c("meta_d", "d1", "m_ratio")
+    }
+
     # Sampling
-    output <- coda.samples( 
+    output <- coda.samples(
       model          = model,
-      variable.names = c("meta_d", "cS1", "cS2"),
+      variable.names = vars,
       n.iter         = 10000,
       thin           = 1 )
-    
-  }
 
-return(output)
+    return(output)
+
+  }
